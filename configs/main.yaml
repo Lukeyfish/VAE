@@ -1,5 +1,5 @@
 model:
-    name: convnet
+    name: VAE1
     dropout_rate: 0.1
     save_dir: "checkpoints/"
     save_name: "model"

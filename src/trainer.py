@@ -18,7 +18,9 @@ class Trainer:
         device,
         save_path,
         save_name,
-        num_epochs
+        num_epochs,
+        kl_annealing_cycles=1,  # or any other value you prefer
+        kl_annealing_ratio=0.5  # or any other value you prefer
     ):
         self.train_loader = train_loader
         self.val_loader = val_loader
@@ -28,6 +30,8 @@ class Trainer:
         self.save_path = save_path
         self.save_name = save_name
         self.num_epochs = num_epochs
+        self.kl_annealing_cycles = kl_annealing_cycles
+        self.kl_annealing_ratio = kl_annealing_ratio
     
     def train(self):
         autoencoder = self.model
@@ -35,78 +39,129 @@ class Trainer:
         optimizer = torch.optim.Adam(autoencoder.parameters())
         x_dim = 784
         
+        total_steps=0
+        
+        rate = 1
+        
         self.model.train()
         
+        best_val_rec_loss = float('inf')
+        best_val_loss = float('inf')
+        best_val_kld = float('inf')
+        
         for epoch in range(self.num_epochs):
-            total_loss = 0
-            total_bce = 0
+            total_reconstruction_loss = 0
             total_kld = 0
+            total_loss = 0
+
+            kl_weight = self.get_kl_weight(epoch)
             
             train_loader_tqdm = tqdm(self.train_loader, desc=f"Epoch {epoch+1}/{self.num_epochs}", leave=True)
-            for x, y in train_loader_tqdm:
+            self.model.train()
+            
+            for step, (x, y) in enumerate(train_loader_tqdm):
                 x = x.float() / 255.0  # Normalize manually to [0, 1]
                 x = x.view(-1, x_dim).to(self.device)
                 
 
                 optimizer.zero_grad()
                 x_hat, mean, log_var = self.model(x)
-                loss = self.loss_function(x, x_hat, mean, log_var)
-                bce = F.binary_cross_entropy(x, x_hat, reduction='sum').item()
-                kld = -0.5 * torch.sum(1 + log_var - mean.pow(2) - log_var.exp()).item()
+                
+                reconstruction_loss = nn.functional.binary_cross_entropy(x_hat, x, reduction='sum')
+                KLD = - 0.5 * torch.sum(1 + log_var - mean.pow(2) - log_var.exp())                
+                loss = reconstruction_loss + kl_weight * KLD
                 
                 
                 loss.backward()
                 optimizer.step()
                 
+                total_reconstruction_loss += reconstruction_loss.item()
+                total_kld += KLD
                 total_loss += loss.item()
-                total_bce += bce
-                total_kld += kld
+
                 
-                train_loader_tqdm.set_postfix(loss=loss.item(), bce=bce, kld=kld)
+                train_loader_tqdm.set_postfix(loss=loss.item(), reconstruction_loss=reconstruction_loss.item(), kld=KLD.item())
+                if step % rate == 0:
+                    #plot_latent(autoencoder, self.val_loader, epoch=total_steps, rate=rate, loss=loss, bce=bce, kld=kld)
+                    visualize_reconstructions(autoencoder, self.val_loader, self.device, epoch=total_steps)
+                    
+                if step % 20 == 0:
+                    rate+=1
+
+                total_steps+=1            
             
-            
-            
-            avg_loss = total_loss / len(self.train_loader.dataset)
-            avg_bce = total_bce / len(self.train_loader.dataset)
+            avg_rec_loss = total_reconstruction_loss / len(self.train_loader.dataset)
             avg_kld = total_kld / len(self.train_loader.dataset)
+            avg_loss = total_loss / len(self.train_loader.dataset)
+
             
             #plot_latent_space(autoencoder, epoch=epoch)
             #plot_latent(autoencoder, self.train_loader, epoch=epoch, loss=avg_loss, bce=avg_bce, kld=avg_kld)
-            visualize_reconstructions(autoencoder, self.val_loader, self.device, epoch=epoch)
             
-            print(f'Epoch {epoch + 1}, Average Loss: {avg_loss}, Average BCE: {avg_bce}, Average KLD: {avg_kld}')
+            print(f'Epoch {epoch + 1}, Average Loss: {avg_loss}, Average Reconstruction Loss: {avg_rec_loss}, Average KLD: {avg_kld}')
+            
+            val_rec_loss, val_kld, val_loss = self.validate()
+            if(val_loss < best_val_loss):
+                best_val_loss = val_loss
+                best_val_rec_loss = val_rec_loss
+                best_val_kld = val_kld
+                print("Model Improved!")
+            else:
+                print("Model not improved!")
+                breakpoint()
+            
+            
         return autoencoder
     
-    def loss_function(self, x, x_hat, mean, log_var):
-        reproduction_loss = nn.functional.binary_cross_entropy(x_hat, x, reduction='sum')
-        KLD = - 0.5 * torch.sum(1+ log_var - mean.pow(2) - log_var.exp())
-
-        return reproduction_loss + KLD
+    
+    def get_kl_weight(self, epoch):
+        cycle_length = self.num_epochs // self.kl_annealing_cycles
+        cycle = epoch // cycle_length
+        cycle_progress = (epoch % cycle_length) / (cycle_length * self.kl_annealing_ratio)
+        kl_weight = min(1.0, cycle_progress + cycle)
+        return kl_weight
     
                 
     def validate(self):
-        # Set the model to evaluation mode
+        val_loader_tqdm = tqdm(self.val_loader, desc=f"Evaluating", leave=True)
+        
         self.model.eval()
         
+        val_rec_loss = 0.0
+        val_kld = 0.0
         val_loss = 0.0
-        correct = 0
-        total = 0
 
-        with torch.no_grad():
-            for x, y in self.val_loader:
-                x, y = x.to(self.device), y.to(self.device)
-                y_hat = self.model(x)
-                loss = nn.CrossEntropyLoss()(y_hat, y)
-                val_loss += loss.item()
-                
-                _, predicted = torch.max(y_hat, 1)
-                total += y.size(0)
-                correct += (predicted == y).sum().item()
+        kl_weight = self.get_kl_weight(self.num_epochs - 1)  # Use the final KL weight for validation
         
-        avg_val_loss = val_loss / len(self.val_loader)
-        val_accuracy = 100 * correct / total
+        for step, (x, y) in enumerate(val_loader_tqdm):
+            x = x.float() / 255.0  # Normalize manually to [0, 1]
+            x = x.view(-1, 784).to(self.device)
+            
+
+            x_hat, mean, log_var = self.model(x)
+            
+            reconstruction_loss = nn.functional.binary_cross_entropy(x_hat, x, reduction='sum')
+            KLD = - 0.5 * torch.sum(1 + log_var - mean.pow(2) - log_var.exp())
+            loss = reconstruction_loss + kl_weight * KLD
+            
+            
+            
+            val_rec_loss += reconstruction_loss.item()
+            val_kld += KLD
+            val_loss += loss.item()
+
+            
+            val_loader_tqdm.set_postfix(loss=loss.item(), reconstruction_loss=reconstruction_loss.item(), kld=KLD.item())
+            
+        avg_val_rec_loss = val_rec_loss / len(self.val_loader.dataset)
+        avg_val_kld = val_kld / len(self.val_loader.dataset)
+        avg_val_loss = val_loss / len(self.val_loader.dataset)
+
+            
+        print(f'Validation Average Loss: {avg_val_loss}, Average Reconstruction Loss: {avg_val_rec_loss}, Average KLD: {avg_val_kld}')
         
-        return avg_val_loss, val_accuracy
+        return avg_val_rec_loss, avg_val_kld, avg_val_loss
+
     
     
 class Tester:

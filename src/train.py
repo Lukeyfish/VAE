@@ -8,7 +8,7 @@ import numpy as np
 from model.convnet import VGG11, VGG16, BasicCNN
 from data import FashionDataset, FashionDataLoader
 from trainer import Trainer, Tester
-from model.VAE import VAE
+from model.VAE import VAE, VAE1
 from vis import visualize_reconstructions
 
 def main():
@@ -37,9 +37,10 @@ def main():
 
     # Instantiating the Model
     # Autoencoder initializiation
-    latent_dims = 200
+    latent_dim = 200
     #model = VAE(2)
-    model = VAE(784, 400, latent_dims, device)
+    #model = VAE(784, 400, latent_dims, device)
+    model = VAE1(784, 400, latent_dim, cfg['model']['dropout_rate'])
     #model = VariationalAutoEncoder(latent_dims)
     #model = BasicCNN(cfg['model']['dropout_rate']).to(device)
     
