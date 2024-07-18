@@ -1,0 +1,29 @@
+model:
+    name: convnet
+    dropout_rate: 0.1
+    save_dir: "checkpoints/"
+    save_name: "model"
+
+trainer:
+    batch_size: 512
+    num_epochs: 40
+    shuffle: True
+    optim:
+        type: Adam
+        lr: 0.00001
+        b1: 0.9
+        b2: 0.999
+        lr_decay: 0
+data:
+    shuffle: True
+    train_ft: './data/train-images-idx3-ubyte.gz'
+    train_tg: './data/train-labels-idx1-ubyte.gz'
+    test_ft: './data/t10k-images-idx3-ubyte.gz'
+    test_tg: './data/t10k-labels-idx1-ubyte.gz'
+
+wandb:
+    project: fashion_mnist
+    job_type: train
+    name: null
+    init_kwargs:
+        mode: disabled #online
