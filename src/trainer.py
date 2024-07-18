@@ -105,8 +105,8 @@ class Trainer:
                 
                 
                 if step % rate == 0:
-                    #plot_latent(autoencoder, self.val_loader, epoch=total_steps, rate=rate, loss=loss, bce=bce, kld=kld)
-                    visualize_reconstructions(autoencoder, self.val_loader, self.device, epoch=total_steps, sweep_id=self.sweep_id)
+                    plot_latent(autoencoder, self.val_loader, epoch=total_steps, rate=rate, loss=loss, rec_loss=reconstruction_loss, kld=kld)
+                    #visualize_reconstructions(autoencoder, self.val_loader, self.device, epoch=total_steps, sweep_id=self.sweep_id)
                     
                 if step % 30 == 0:
                     rate+=1

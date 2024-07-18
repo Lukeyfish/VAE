@@ -18,10 +18,15 @@ def plot_latent(autoencoder, data, num_batches=100, epoch=0, rate=1, loss=0, rec
         
         for i, (x, y) in enumerate(data):
             x = x.float() / 255.0  # Normalize manually to [0, 1]
-            x = x.view(-1, x_dim)
+            x = x.reshape(-1, 1, 28, 28).to(device) # VAE2
+            #x = x.view(-1, x_dim) #VAE1
             
             z = autoencoder.encoder(x.to(device))
-            z = z.to('cpu').cpu().numpy()
+            
+            if isinstance(z, tuple):
+                z = z[0]
+                
+            z = z.detach().to('cpu').numpy()
             
             ax.scatter(z[:, 0], z[:, 1], z[:, 2], c=y, cmap='tab10')  # Scatter plot in 3D
             if i > num_batches:
