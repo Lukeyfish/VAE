@@ -1,6 +1,6 @@
-# ML Pipeline
+# Variational Auto Encoder
 
-This repository contains a machine learning pipeline for any ML task, e.g., image classification, sentiment analysis, etc... The pipeline is designed to streamline the process of training, evaluating, and deploying machine learning models
+This repository is an example of a Variational Auto Encoder and how it effects the representational power of the data at the cost of a latent representation
 
 ## Table of Contents
 
