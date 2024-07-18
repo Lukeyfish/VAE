@@ -21,7 +21,7 @@ def plot_latent(autoencoder, data, num_batches=100, epoch=0, rate=1, loss=0, rec
             x = x.view(-1, x_dim)
             
             z = autoencoder.encoder(x.to(device))
-            z = z.to('cpu').detach().numpy()
+            z = z.to('cpu').cpu().numpy()
             
             ax.scatter(z[:, 0], z[:, 1], z[:, 2], c=y, cmap='tab10')  # Scatter plot in 3D
             if i > num_batches:
@@ -124,7 +124,7 @@ def visualize_reconstructions(model, data_loader, device, epoch=0, sweep_id=None
 
     # Detach and move to CPU for plotting
     images = images.cpu().numpy()
-    recon_images = recon_images.detach().numpy()
+    recon_images = recon_images.detach().cpu().numpy()
 
     fig, axs = plt.subplots(4, 5, figsize=(15, 12))
     fig.suptitle(f"Original and Reconstructed Images. Step: {epoch}", fontsize=22)
@@ -140,5 +140,5 @@ def visualize_reconstructions(model, data_loader, device, epoch=0, sweep_id=None
         axs[row * 2 + 1, col].axis('off')
         axs[row * 2 + 1, col].set_title(f'Reconstructed {i}')
     
-    plt.savefig(f"figs/before&after/before&after_{sweep_id}_{epoch}.png", dpi=80)
+    plt.savefig(f"figs/BeforeAfter/BeforeAfter_{sweep_id}_{epoch}.png", dpi=80)
     plt.close(fig)

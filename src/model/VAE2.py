@@ -76,15 +76,16 @@ class Decoder(nn.Module):
         return self.final_layer(x)
 
 class VAE2(nn.Module):
-    def __init__(self, input_dim=1, hidden_dims=[32, 64, 128, 256, 512], latent_dim=128):
+    def __init__(self, latent_dim, input_dim=1, hidden_dims=[32, 64, 128, 256, 512], device='cuda'):
         super(VAE2, self).__init__()
 
         self.encoder = Encoder(input_dim, hidden_dims, latent_dim)
         self.decoder = Decoder(latent_dim, hidden_dims)
+        self.device = device
 
     def reparameterize(self, mean, logvar):
         std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(std)
+        eps = torch.randn_like(std).to(self.device)
         return mean + eps * std
 
     def forward(self, x):

@@ -88,7 +88,7 @@ def main():
     #model = VAE(784, 400, latent_dims, device)
     #model = VAE1(784, hidden_dim, latent_dim, cfg['model']['dropout_rate'])
     
-    model = VAE2()
+    model = VAE2(latent_dim=latent_dim, device=device).to(device)
     #model = VAEGMM(784, 400, latent_dim, cfg['model']['dropout_rate'])
     #model = LearnedPriorVAE(784, 400, latent_dim, cfg['model']['dropout_rate'])
     

@@ -66,7 +66,7 @@ class Trainer:
             for step, (x, y) in enumerate(train_loader_tqdm):
                 x = x.float() / 255.0  # Normalize manually to [0, 1]
                 
-                x = x.reshape(-1, 1, 28, 28)
+                x = x.reshape(-1, 1, 28, 28).to(self.device)
                 #x = x.view(-1, x_dim).to(self.device)
                 
 
@@ -162,7 +162,7 @@ class Trainer:
         for step, (x, y) in enumerate(val_loader_tqdm):
             x = x.float() / 255.0  # Normalize manually to [0, 1]
             
-            x = x.reshape(-1, 1, 28, 28)
+            x = x.reshape(-1, 1, 28, 28).to(self.device)
             #x = x.view(-1, 784).to(self.device)
             
             '''
