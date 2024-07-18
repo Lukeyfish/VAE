@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt; plt.rcParams['figure.dpi'] = 200
 import numpy as np
 
 
-def plot_latent(autoencoder, data, num_batches=100, epoch=0, rate=1, loss=0, bce=0, kld=0):
+def plot_latent(autoencoder, data, num_batches=100, epoch=0, rate=1, loss=0, rec_loss=0, kld=0):
     elevation = 30
     azimuths = [30, 60, 120, 240]  # Different azimuth angles for the subplots
     
@@ -11,7 +11,7 @@ def plot_latent(autoencoder, data, num_batches=100, epoch=0, rate=1, loss=0, bce
     x_dim = 784
     
     fig = plt.figure(figsize=(14, 10))  # Adjust figure size as needed
-    fig.suptitle("Latent Space Representation (Step {}, Loss {:.4f}, BCE {:.4f}, KLD {:.4f})".format(epoch, loss, bce, kld), fontsize=16)
+    fig.suptitle("Latent Space Representation (Step {}, Loss {:.4f}, Reconstruction Loss {:.4f}, KLD {:.4f})".format(epoch, loss, rec_loss, kld), fontsize=16)
     
     for idx, azimuth in enumerate(azimuths, 1):
         ax = fig.add_subplot(2, 2, idx, projection='3d')  # Create 3D axes for each subplot
@@ -98,7 +98,7 @@ def plot_latent_space(model, scale=1.0, n=25, digit_size=28, figsize=15, epoch=0
     plt.clf()
 
 
-def visualize_reconstructions(model, data_loader, device, epoch=0):
+def visualize_reconstructions(model, data_loader, device, epoch=0, sweep_id=None):
     model.eval()
     class_examples = {i: None for i in range(10)}  # Dictionary to hold one example from each class
 
@@ -119,8 +119,8 @@ def visualize_reconstructions(model, data_loader, device, epoch=0):
 
     images = torch.stack(list(class_examples.values()))
     images = images.to(device)
-    images = images.reshape(-1, 784)
-    recon_images, _, _ = model(images)
+    images = images.reshape(-1, 1, 28, 28)
+    recon_images, _, _= model(images)
 
     # Detach and move to CPU for plotting
     images = images.cpu().numpy()
@@ -140,5 +140,5 @@ def visualize_reconstructions(model, data_loader, device, epoch=0):
         axs[row * 2 + 1, col].axis('off')
         axs[row * 2 + 1, col].set_title(f'Reconstructed {i}')
     
-    plt.savefig(f"figs/before&after/before&after_{epoch}.png", dpi=80)
+    plt.savefig(f"figs/before&after/before&after_{sweep_id}_{epoch}.png", dpi=80)
     plt.close(fig)

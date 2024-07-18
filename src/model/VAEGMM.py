@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
+import math
 
 class Encoder(nn.Module):
     def __init__(
@@ -79,17 +80,18 @@ class Decoder(nn.Module):
         x = self.act3(x)
         return x
         
-class VAE1(nn.Module):
+class VAEGMM(nn.Module):
     
     def __init__(
         self, 
         input_dim, 
         hidden_dim, 
         latent_dim,
-        dropout_rate
+        dropout_rate,
+        n_components=10 # Number of componenets for GMM
         ):
         
-        super(VAE1, self).__init__()
+        super(VAEGMM, self).__init__()
 
         # encoder
         self.encoder = Encoder(
@@ -106,67 +108,49 @@ class VAE1(nn.Module):
                             dropout_rate=dropout_rate
                             )
         
+        # Parameters for the GMM prior
+        self.n_components = n_components
+        self.component_logits = nn.Parameter(torch.zeros(n_components))
+        self.component_means = nn.Parameter(torch.randn(n_components, latent_dim))
+        self.component_log_vars = nn.Parameter(torch.zeros(n_components, latent_dim))
+        
     def reparameterization(self, mean, logvar):
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
         return mean + eps * std
+    
+    def log_normal(self, x, mean, logvar):
+        return -0.5 * torch.sum(logvar + (x - mean).pow(2) / logvar.exp() + math.log(2 * math.pi), dim=1)
 
     def forward(self, x):
         mean, logvar = self.encoder(x)
         z = self.reparameterization(mean, logvar)
         x_hat = self.decoder(z)
-        return x_hat, mean, logvar
+        return x_hat, mean, logvar, self.component_logits, self.component_means, self.component_log_vars
 
     
-
-class VAE(nn.Module):
-
-    def __init__(
-        self, 
-        input_dim=784, 
-        hidden_dim=400, 
-        latent_dim=200, 
-        device='cpu'):
+    def log_normal_mixture(self, z, component_logits, component_means, component_log_vars):
+        z = z.unsqueeze(1)  # [B, 1, D]
+        component_means = component_means.unsqueeze(0)  # [1, C, D]
+        component_log_vars = component_log_vars.unsqueeze(0)  # [1, C, D]
         
-        super(VAE, self).__init__()
-
-        # encoder
-        self.encoder = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim),
-            nn.LeakyReLU(0.2),
-            nn.Linear(hidden_dim, latent_dim),
-            nn.LeakyReLU(0.2)
-            )
+        log_probs = -0.5 * torch.sum(
+            component_log_vars + 
+            (z - component_means).pow(2) / component_log_vars.exp() + 
+            math.log(2 * math.pi),
+            dim=2
+        )  # [B, C]
         
-        # latent mean and variance 
-        self.mean_layer = nn.Linear(latent_dim, 2)
-        self.logvar_layer = nn.Linear(latent_dim, 2)
+        return torch.logsumexp(log_probs + component_logits, dim=1)
+    
+    def loss_function(self, recon_x, x, z_mean, z_logvar, component_logits, component_means, component_log_vars):
+        # Reconstruction loss
+        recon_loss = F.binary_cross_entropy(recon_x, x, reduction='sum')
         
-        # decoder
-        self.decoder = nn.Sequential(
-            nn.Linear(2, latent_dim),
-            nn.LeakyReLU(0.2),
-            nn.Linear(latent_dim, hidden_dim),
-            nn.LeakyReLU(0.2),
-            nn.Linear(hidden_dim, input_dim),
-            nn.Sigmoid()
-            )
-     
-    def encode(self, x):
-        x = self.encoder(x)
-        mean, logvar = self.mean_layer(x), self.logvar_layer(x)
-        return mean, logvar
-
-    def reparameterization(self, mean, var):
-        epsilon = torch.randn_like(var)#.to(device)      
-        z = mean + var*epsilon
-        return z
-
-    def decode(self, x):
-        return self.decoder(x)
-
-    def forward(self, x):
-        mean, logvar = self.encode(x)
-        z = self.reparameterization(mean, logvar)
-        x_hat = self.decode(z)
-        return x_hat, mean, logvar
+        # KL divergence
+        z = self.reparameterization(z_mean, z_logvar)
+        log_q_z = self.log_normal(z, z_mean, z_logvar)
+        log_p_z = self.log_normal_mixture(z, component_logits, component_means, component_log_vars)
+        kl_loss = log_q_z - log_p_z
+        
+        return recon_loss + kl_loss.sum()
