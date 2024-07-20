@@ -89,9 +89,9 @@ def main():
     hidden_dim = 100
     hidden_dims = [400, 200]
     #model = VAE(784, 400, latent_dims, device)
-    model = VAE1(784, hidden_dims, latent_dim, cfg['model']['dropout_rate'])
+    #model = VAE1(784, hidden_dims, latent_dim, cfg['model']['dropout_rate']).to(device)
     
-    #model = VAE2(latent_dim=latent_dim, device=device).to(device)
+    model = VAE2(latent_dim=latent_dim, device=device).to(device)
     
     #model = HVAE(784, 400, latent_dim, cfg['model']['dropout_rate']).to(device)
     #model = VAEGMM(784, 400, latent_dim, cfg['model']['dropout_rate'])

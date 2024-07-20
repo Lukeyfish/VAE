@@ -19,8 +19,8 @@ def plot_latent(autoencoder, data, num_batches=100, epoch=0, rate=1, loss=0, rec
         
         for i, (x, y) in enumerate(data):
             x = x.float() / 255.0  # Normalize manually to [0, 1]
-            #x = x.reshape(-1, 1, 28, 28).to(device) # VAE2 & HVAE
-            x = x.view(-1, x_dim) #VAE1
+            x = x.reshape(-1, 1, 28, 28).to(device) # VAE2 & HVAE
+            #x = x.view(-1, x_dim) #VAE1
             
             z = autoencoder.encoder(x.to(device))
             
@@ -124,8 +124,8 @@ def visualize_reconstructions(model, data_loader, device, epoch=0, sweep_id=None
 
     images = torch.stack(list(class_examples.values()))
     images = images.to(device)
-    #images = images.reshape(-1, 1, 28, 28)
-    images = images.view(-1, 784)
+    images = images.reshape(-1, 1, 28, 28)
+    #images = images.view(-1, 784)
     recon_images, _, _= model(images)
 
     # Detach and move to CPU for plotting

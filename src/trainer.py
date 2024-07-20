@@ -66,9 +66,8 @@ class Trainer:
             for step, (x, y) in enumerate(train_loader_tqdm):
                 x = x.float() / 255.0  # Normalize manually to [0, 1]
                 
-                #x = x.reshape(-1, 1, 28, 28).to(self.device)
-                x = x.reshape(-1, 784).to(self.device)
-                #x = x.view(-1, x_dim).to(self.device)
+                x = x.reshape(-1, 1, 28, 28).to(self.device)
+                #x = x.reshape(-1, 784).to(self.device)
                 
 
                 optimizer.zero_grad()
@@ -108,7 +107,7 @@ class Trainer:
                 if step % rate == 0:
                     plot_latent(autoencoder, self.val_loader, epoch=total_steps, rate=rate, loss=loss, rec_loss=reconstruction_loss, kld=kld)
                     #plot_latent_space(autoencoder, epoch=total_steps)
-                    #visualize_reconstructions(autoencoder, self.val_loader, self.device, epoch=total_steps)
+                    visualize_reconstructions(autoencoder, self.val_loader, self.device, epoch=total_steps)
                     #sample_latent_points(autoencoder, self.val_loader, self.device, total_steps)
                     
                 if step % 30 == 0:
@@ -165,9 +164,9 @@ class Trainer:
         for step, (x, y) in enumerate(val_loader_tqdm):
             x = x.float() / 255.0  # Normalize manually to [0, 1]
             
-            #x = x.reshape(-1, 1, 28, 28).to(self.device)
+            x = x.reshape(-1, 1, 28, 28).to(self.device)
             
-            x = x.view(-1, 784).to(self.device)
+            #x = x.view(-1, 784).to(self.device)
             
             '''
             #GMM Prior
