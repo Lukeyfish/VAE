@@ -1,6 +1,7 @@
 import torch
 import matplotlib.pyplot as plt; plt.rcParams['figure.dpi'] = 200
 import numpy as np
+#from sklearn.decomposition import PCA
 
 
 def plot_latent(autoencoder, data, num_batches=100, epoch=0, rate=1, loss=0, rec_loss=0, kld=0):
@@ -18,8 +19,8 @@ def plot_latent(autoencoder, data, num_batches=100, epoch=0, rate=1, loss=0, rec
         
         for i, (x, y) in enumerate(data):
             x = x.float() / 255.0  # Normalize manually to [0, 1]
-            x = x.reshape(-1, 1, 28, 28).to(device) # VAE2
-            #x = x.view(-1, x_dim) #VAE1
+            #x = x.reshape(-1, 1, 28, 28).to(device) # VAE2 & HVAE
+            x = x.view(-1, x_dim) #VAE1
             
             z = autoencoder.encoder(x.to(device))
             
@@ -82,12 +83,11 @@ def plot_latent_space(model, scale=1.0, n=25, digit_size=28, figsize=15, epoch=0
     for i, yi in enumerate(grid_y):
         for j, xi in enumerate(grid_x):
             z_sample = torch.tensor([[xi, yi]], dtype=torch.float)
-            x_decoded = model.decode(z_sample)
+            x_decoded = model.decoder(z_sample)
             digit = x_decoded[0].detach().cpu().reshape(digit_size, digit_size)
             figure[i * digit_size : (i + 1) * digit_size, j * digit_size : (j + 1) * digit_size,] = digit
 
     plt.figure(figsize=(figsize, figsize))
-    #plt.imshow(figure, cmap="Greys_r")
 
     plt.title('VAE Latent Space Visualization')
     start_range = digit_size // 2
@@ -100,7 +100,7 @@ def plot_latent_space(model, scale=1.0, n=25, digit_size=28, figsize=15, epoch=0
     plt.xlabel("mean, z [0]")
     plt.ylabel("var, z [1]")
     plt.savefig(f"figs/latent_space/latent_space_{epoch}.png")
-    plt.clf()
+    plt.close()
 
 
 def visualize_reconstructions(model, data_loader, device, epoch=0, sweep_id=None):
@@ -124,7 +124,8 @@ def visualize_reconstructions(model, data_loader, device, epoch=0, sweep_id=None
 
     images = torch.stack(list(class_examples.values()))
     images = images.to(device)
-    images = images.reshape(-1, 1, 28, 28)
+    #images = images.reshape(-1, 1, 28, 28)
+    images = images.view(-1, 784)
     recon_images, _, _= model(images)
 
     # Detach and move to CPU for plotting
@@ -147,3 +148,56 @@ def visualize_reconstructions(model, data_loader, device, epoch=0, sweep_id=None
     
     plt.savefig(f"figs/BeforeAfter/BeforeAfter_{sweep_id}_{epoch}.png", dpi=80)
     plt.close(fig)
+
+
+# HVAE
+def sample_latent_points(HVAE, data_loader, device, steps):
+    HVAE.eval()
+    all_latent_points = []
+    all_labels = []
+
+    with torch.no_grad():
+        for num_steps, (inputs, labels) in enumerate(data_loader):
+            inputs = inputs.float() / 255.0
+            inputs = inputs.view(-1, 784)
+            
+            inputs = inputs.to(device)
+            mean, logvar = HVAE.encoder(inputs)
+            z = HVAE.reparameterization(mean, logvar)
+            all_latent_points.append(z.cpu().numpy())
+            all_labels.append(labels.cpu().numpy())
+            
+            
+    latent_points = np.concatenate(all_latent_points)
+    latent_labels = np.concatenate(all_labels)
+            
+    latent_dim = latent_points.shape[1]
+    
+    if latent_dim > 2:
+        assert latent_dim > 2, "Latent dimension must be < 2 for visualization"
+        #pca = PCA(n_components=2)
+        #latent_points_2d = pca.fit_transform(latent_points)
+    else:
+        print("HERE, latent_points: ", latent_points)
+    latent_points_2d = latent_points
+        
+    plt.figure(figsize=(5, 5))
+    unique_labels = np.unique(latent_labels)
+    colors = plt.cm.rainbow(np.linspace(0, 1, len(unique_labels)))
+
+    for i, label in enumerate(unique_labels):
+        plt.scatter(latent_points_2d[latent_labels == label, 0], latent_points_2d[latent_labels == label, 1], 
+                    color=colors[i], label=f'Class {label}', alpha=0.5)
+
+    plt.xlabel('Latent Dimension 1')
+    plt.ylabel('Latent Dimension 2')
+    plt.title('Hyperspherical VAE Latent Space')
+
+    # Draw a unit circle
+    circle = plt.Circle((0, 0), 1, color='r', fill=False)
+    plt.gca().add_artist(circle)
+
+    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))    
+    plt.grid(True)
+    plt.savefig(f"figs/HVAE/hvae_latent_space_{steps}.png")
+    plt.close()

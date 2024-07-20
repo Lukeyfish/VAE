@@ -9,9 +9,11 @@ import wandb
 from model.convnet import VGG11, VGG16, BasicCNN
 from data import FashionDataset, FashionDataLoader
 from trainer import Trainer, Tester
-from model.VAE import VAE, VAE1
+from model.VAE import VAE
+from model.VAE1 import VAE1
 from model.VAEGMM import VAEGMM
 from model.VAE2 import VAE2
+from model.HVAE import HVAE
 
 from vis import visualize_reconstructions
 
@@ -83,12 +85,15 @@ def main():
     # Instantiating the Model
     #latent_dim = config.latent_dim
     #hidden_dim = config.hidden_dim
-    latent_dim = 50
+    latent_dim = 3
     hidden_dim = 100
+    hidden_dims = [400, 200]
     #model = VAE(784, 400, latent_dims, device)
-    #model = VAE1(784, hidden_dim, latent_dim, cfg['model']['dropout_rate'])
+    model = VAE1(784, hidden_dims, latent_dim, cfg['model']['dropout_rate'])
     
-    model = VAE2(latent_dim=latent_dim, device=device).to(device)
+    #model = VAE2(latent_dim=latent_dim, device=device).to(device)
+    
+    #model = HVAE(784, 400, latent_dim, cfg['model']['dropout_rate']).to(device)
     #model = VAEGMM(784, 400, latent_dim, cfg['model']['dropout_rate'])
     #model = LearnedPriorVAE(784, 400, latent_dim, cfg['model']['dropout_rate'])
     
