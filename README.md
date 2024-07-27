@@ -22,6 +22,10 @@ To download fashion-mnist data run:
 make data
 ```
 
+## Configuration
+
+Edit the `configs/main.yaml` with data load path, and desired hyperparameters
+
 ## Usage
 
 To run the model:
@@ -30,6 +34,4 @@ To run the model:
 Make train
 ```
 
-## Configuration
 
-Edit the `configs/main.yaml` with data load path, and desired hyperparameters
