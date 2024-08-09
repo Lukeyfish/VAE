@@ -38,7 +38,7 @@ Figure 4 is showing the learning process of the VAE overtime. As you can see as 
         <p align="center">Figure 3: Visualization of the latent space learning the encoder mappings</p>
       </td>
       <td>
-        <img height=400, src="https://github.com/Lukeyfish/VAE/blob/main/imgs/Latent_Progression.gif" alt="Latent_Progression" width="400">
+        <img height=400, width=400, src="https://github.com/Lukeyfish/VAE/blob/main/imgs/Latent_Progression.gif" alt="Latent_Progression" width="400">
         <p align="center">Figure 4: VAE learning to reconstruct images</p>
       </td>
     </tr>
