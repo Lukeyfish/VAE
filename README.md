@@ -6,7 +6,7 @@ I used this repository as practice to understand how Variational Autoencoders ef
 VAE's are integral to other types of generative models such as GAN's or Latent Diffusion Models which was the main inspiration behind this project.
 
 
-As seen in Figure 1, the original image (in this case a simple Fashion-MNIST image) is sent through an encoder which maps the original image to the probabilistic latent space. Once here the image can be reconstructed from the latent space via the decoder.  
+As seen in Figure 1, the original image (in this case a simple Fashion-MNIST image) is sent through an encoder which maps the original image to the probabilistic latent space. Once here, the image can be reconstructed from the latent space via the decoder.  
 
 <div align="center">
   <img align="center" src="https://github.com/Lukeyfish/VAE/blob/main/imgs/VAE_Diagram.png" alt="VAE_Diagram">
@@ -28,8 +28,8 @@ Figure 2 highlights the learned Guassian latent space via the learned mean and v
 ## Training
 
 To help me understand how the model was learning to differente between classes, I created some helpful gifs.  
-Figure 3 is showing the Latent Space representation of the data once it has been passed through the encoder. (Notice how seperated the classes get towards the end!? super cool! 😎)  
-Figure 4 is showing the learning process of the VAE overtime. As you can see as time evolves, the reconstructed images slowly align closer to the original images as they should. yay! 🎉
+Figure 3 is showing the Latent Space representation of the data once it has been passed through the encoder. Notice as the number of iterations inceases, class seperation greatly improves.  
+Figure 4 is showing the learning process of the VAE overtime. As you can see as time evolves, the reconstructed images slowly aligns closer to the original images as they should.
 <div align="center">
   <table>
     <tr>
